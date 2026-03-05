@@ -345,6 +345,7 @@
 <body>
 
 <div class="card" id="app"></div>
+<div class="card" id="results-card" style="margin-top:16px;display:none;max-width:420px;margin-left:auto;margin-right:auto;"></div>
 
 <script>
 // ── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ──────
@@ -416,6 +417,43 @@
 </script>
 
 <script>
+// ── Supabase config (tokens injected by CI) ───────────────────────────────────
+const SUPABASE_URL      = "__SUPABASE_URL__";
+const SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+
+// Minimal Supabase REST helper — no npm needed
+const sb = {
+  async insert(row) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/votes`, {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "apikey":         SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Prefer":        "return=minimal",
+      },
+      body: JSON.stringify(row),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || res.statusText);
+    }
+  },
+  async selectAll() {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/votes?select=rank1,rank2,rank3,rank4`,
+      {
+        headers: {
+          "apikey":         SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  },
+};
+
 // ── Options ───────────────────────────────────────────────────────────────────
 const OPTIONS = [
   { id: "wot",   label: "The Web of Trust", icon: "🕸️" },
@@ -424,19 +462,8 @@ const OPTIONS = [
   { id: "spend", label: "Spend Thanks",      icon: "🙏" },
 ];
 
-// ── DB (localStorage) ─────────────────────────────────────────────────────────
-const DB_KEY = "ps_voting_votes_v3";
-
-function loadVotes() {
-  try { return JSON.parse(localStorage.getItem(DB_KEY) || "{}"); }
-  catch { return {}; }
-}
-
-function saveVote(address, voteData) {
-  const votes = loadVotes();
-  votes[(address || "anon").toLowerCase()] = { ...voteData, timestamp: Date.now() };
-  localStorage.setItem(DB_KEY, JSON.stringify(votes));
-}
+// Points awarded per rank position
+const POINTS = [4, 3, 2, 1]; // 1st=4, 2nd=3, 3rd=2, 4th=1
 
 // ── State ─────────────────────────────────────────────────────────────────────
 // Flow:
@@ -452,6 +479,80 @@ const state = {
   signing: false,
   error:   null,
 };
+
+// ── Results ───────────────────────────────────────────────────────────────────
+const resultsCard = document.getElementById("results-card");
+
+async function renderResults() {
+  resultsCard.style.display = "block";
+  resultsCard.innerHTML = `
+    <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;margin-bottom:4px;">Live results</div>
+    <div style="font-size:13px;color:#9b9db3;">Loading…</div>`;
+
+  let rows;
+  try {
+    rows = await sb.selectAll();
+  } catch (e) {
+    resultsCard.innerHTML = `
+      <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;margin-bottom:4px;">Live results</div>
+      <div class="msg msg-error visible">Could not load results: ${e.message}</div>`;
+    return;
+  }
+
+  const total = rows.length;
+
+  // Tally weighted scores and first-place counts
+  const scores    = {};
+  const firstPlace = {};
+  OPTIONS.forEach(o => { scores[o.id] = 0; firstPlace[o.id] = 0; });
+
+  rows.forEach(row => {
+    [row.rank1, row.rank2, row.rank3, row.rank4].forEach((id, i) => {
+      if (id && scores[id] !== undefined) scores[id] += POINTS[i];
+    });
+    if (row.rank1 && firstPlace[row.rank1] !== undefined) firstPlace[row.rank1]++;
+  });
+
+  // Sort by score descending
+  const sorted = [...OPTIONS].sort((a, b) => scores[b.id] - scores[a.id]);
+  const maxScore = sorted[0] ? scores[sorted[0].id] : 1;
+
+  const rankLabels = ["🥇", "🥈", "🥉", "4th"];
+
+  const rows_html = sorted.map((o, i) => {
+    const pct = maxScore > 0 ? Math.round((scores[o.id] / maxScore) * 100) : 0;
+    return `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:14px;font-weight:600;color:#060a40;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">${o.icon}</span>${o.label}
+          </span>
+          <span style="font-size:12px;font-weight:600;color:#6a6c8c;">${scores[o.id]} pts</span>
+        </div>
+        <div style="background:#ede1d8;border-radius:999px;height:6px;overflow:hidden;">
+          <div style="background:#060a40;height:6px;border-radius:999px;width:${pct}%;transition:width 0.4s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <span style="font-size:11px;color:#9b9db3;">${rankLabels[i]} place</span>
+          <span style="font-size:11px;color:#9b9db3;">#1 pick by ${firstPlace[o.id]} voter${firstPlace[o.id] !== 1 ? "s" : ""}</span>
+        </div>
+      </div>`;
+  }).join("");
+
+  resultsCard.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;">Live results</div>
+      <div style="font-size:12px;color:#9b9db3;">${total} vote${total !== 1 ? "s" : ""} total</div>
+    </div>
+    ${rows_html}
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #ede1d8;">
+      <div style="font-size:11px;color:#9b9db3;line-height:1.6;">
+        <strong style="color:#6a6c8c;font-weight:600;">How scores work:</strong>
+        each voter ranks all four options. 1st place = 4 pts, 2nd = 3 pts, 3rd = 2 pts, 4th = 1 pt.
+        Scores are summed across all voters.
+      </div>
+    </div>`;
+}
 
 function remaining() {
   // Options that are neither most (rank[0]) nor least (rank[3])
@@ -519,6 +620,7 @@ function render() {
           }).join("")}
         </div>
       </div>`;
+    renderResults();
     return;
   }
 
@@ -683,17 +785,24 @@ async function submitVote() {
 
   try {
     const result = await window.MiniappSDK.signMessage(payload, "erc1271");
-    saveVote(state.wallet, {
-      rank:      [...state.rank],
+
+    // Write to Supabase
+    await sb.insert({
+      wallet:    state.wallet.toLowerCase(),
+      rank1:     state.rank[0],
+      rank2:     state.rank[1],
+      rank3:     state.rank[2],
+      rank4:     state.rank[3],
       signature: result.signature,
       verified:  result.verified,
     });
+
     state.signing = false;
     state.step    = 4;
     render();
   } catch (err) {
     state.signing = false;
-    state.error   = err.message || "Signing was rejected or failed.";
+    state.error   = err.message || "Signing or submission failed.";
     render();
   }
 }
@@ -706,6 +815,12 @@ window.MiniappSDK.onWalletChange(function (address) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 render();
+
+// Show results immediately for anyone visiting (connected or not)
+// — but only once Supabase tokens are real (not placeholder)
+if (SUPABASE_URL !== "__SUPABASE_URL__") {
+  renderResults();
+}
 </script>
 </body>
 </html>
