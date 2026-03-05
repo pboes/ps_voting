@@ -502,6 +502,20 @@ const sb = {
       throw new Error(txt || res.statusText);
     }
   },
+  async getVote(wallet) {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/votes?select=rank1,rank2,rank3,rank4&wallet=eq.${encodeURIComponent(wallet.toLowerCase())}&limit=1`,
+      {
+        headers: {
+          "apikey":         SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+    return rows.length > 0 ? rows[0] : null;
+  },
   async selectAll() {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/votes?select=rank1,rank2,rank3,rank4`,
@@ -536,11 +550,12 @@ const POINTS = [4, 3, 2, 1]; // 1st=4, 2nd=3, 3rd=2, 4th=1
 //   step 3 — confirm
 //   step 4 — done
 const state = {
-  wallet:  null,
-  step:    0,
-  rank:    [null, null, null, null], // [1st, 2nd, 3rd, 4th] option ids
-  signing: false,
-  error:   null,
+  wallet:   null,
+  step:     0,         // -1=checking, 0-3=wizard, 4=done
+  rank:     [null, null, null, null],
+  signing:  false,
+  error:    null,
+  checking: false,     // true while looking up existing vote on connect
 };
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -624,6 +639,14 @@ function pips(active) {
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   const { step, signing, error, wallet, rank } = state;
+
+  // ── Checking for existing vote ────────────────────────────────────────────
+  if (state.checking) {
+    app.innerHTML = `
+      ${topbar()}
+      <div style="font-size:13px;color:#9b9db3;padding:8px 0;">Checking your vote status…</div>`;
+    return;
+  }
 
   // ── Gate: not connected ───────────────────────────────────────────────────
   if (!wallet) {
@@ -859,8 +882,25 @@ async function submitVote() {
 }
 
 // ── Wallet watcher ────────────────────────────────────────────────────────────
-window.MiniappSDK.onWalletChange(function (address) {
+window.MiniappSDK.onWalletChange(async function (address) {
   state.wallet = address;
+  if (!address) { render(); return; }
+
+  // Check if this wallet already voted
+  state.checking = true;
+  render();
+
+  try {
+    const existing = await sb.getVote(address);
+    if (existing) {
+      state.rank = [existing.rank1, existing.rank2, existing.rank3, existing.rank4];
+      state.step = 4;
+    }
+  } catch (e) {
+    // If the lookup fails, let them vote — worst case Supabase rejects the duplicate
+  }
+
+  state.checking = false;
   render();
 });
 
