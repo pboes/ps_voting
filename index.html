@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pick Your Favourite</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #faf5f1;
+      color: #060a40;
+      padding: 24px 16px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #ede1d8;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      border: 1px solid #bbf7ca;
+      background: #f0fdf3;
+      color: #158030;
+    }
+    .conn-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #158030;
+      flex-shrink: 0;
+    }
+
+    /* Progress pips */
+    .pips {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .pip {
+      flex: 1; height: 3px;
+      border-radius: 2px;
+      background: #ede1d8;
+      transition: background 0.3s;
+    }
+    .pip.done   { background: #158030; }
+    .pip.active { background: #060a40; }
+
+    /* Question */
+    .round-heading {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6a6c8c;
+      margin-bottom: 6px;
+    }
+    .question {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.4;
+      margin-bottom: 20px;
+      color: #060a40;
+    }
+
+    /* Option cards */
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .opt {
+      background: #faf5f1;
+      border: 1px solid #ede1d8;
+      border-radius: 10px;
+      color: #060a40;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 14px 16px;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      line-height: 1.3;
+      position: relative;
+    }
+    .opt-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+    .opt:hover:not(:disabled):not(.dimmed) {
+      border-color: #9b9db3;
+      background: #ffffff;
+    }
+
+    /* Most = navy highlight */
+    .opt.most {
+      border-color: #060a40;
+      background: #ffffff;
+    }
+
+    /* Least = warm red tint + dimmed */
+    .opt.least {
+      border-color: #fecaca;
+      background: #fef2f2;
+      opacity: 0.6;
+    }
+
+    /* Dimmed (eliminated) */
+    .opt.dimmed {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Badge on right */
+    .opt-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .badge-most  { background: #060a40; color: #fff; }
+    .badge-least { background: #b91c1c; color: #fff; }
+
+    /* Confirm screen */
+    .confirm-heading {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+      color: #060a40;
+    }
+    .confirm-sub {
+      font-size: 13px;
+      color: #9b9db3;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .summary {
+      background: #faf5f1;
+      border: 1px solid #ede1d8;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 14px;
+      border-bottom: 1px solid #ede1d8;
+      font-size: 13px;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-key { color: #6a6c8c; }
+    .summary-val { font-weight: 600; font-size: 13px; text-align: right; max-width: 60%; color: #060a40; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; }
+    .btn {
+      flex: 1;
+      padding: 13px 16px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn-primary { background: #060a40; color: #fff; }
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ghost {
+      background: #faf5f1;
+      color: #6a6c8c;
+      border: 1px solid #ede1d8;
+      flex: 0 0 auto;
+      padding: 13px 20px;
+    }
+    .btn-ghost:hover { background: #ede1d8; color: #060a40; }
+
+    /* Messages */
+    .msg {
+      margin-top: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      padding: 10px 14px;
+      line-height: 1.5;
+      border: 1px solid;
+      display: none;
+    }
+    .msg.visible { display: block; }
+    .msg-info  { background: #fff8eb; border-color: #feebc7; color: #b54708; }
+    .msg-error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid #ffffff55;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Gate screen (not connected) */
+    .gate-screen { text-align: center; padding: 8px 0 4px; }
+    .gate-icon   { font-size: 2.8rem; margin-bottom: 16px; }
+    .gate-title  {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      color: #060a40;
+    }
+    .gate-sub {
+      color: #9b9db3;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .gate-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 13px 16px;
+      background: #060a40;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      margin-bottom: 12px;
+    }
+    .gate-btn:hover { opacity: 0.85; }
+    .gate-hint {
+      font-size: 12px;
+      color: #9b9db3;
+      line-height: 1.6;
+    }
+    .gate-hint a {
+      color: #060a40;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .gate-hint a:hover { color: #6a6c8c; }
+
+    /* Done screen */
+    .done-screen { text-align: center; padding: 8px 0 4px; }
+    .done-icon   { font-size: 2.8rem; margin-bottom: 16px; }
+    .done-title  {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      color: #060a40;
+    }
+    .done-sub { color: #9b9db3; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
+
+    .ranking {
+      background: #faf5f1;
+      border: 1px solid #ede1d8;
+      border-radius: 10px;
+      overflow: hidden;
+      text-align: left;
+    }
+    .ranking-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-bottom: 1px solid #ede1d8;
+      font-size: 13px;
+      font-weight: 500;
+      color: #060a40;
+    }
+    .ranking-row:last-child { border-bottom: none; }
+    .rank-num {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9b9db3;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .rank-1 .rank-num { color: #060a40; font-size: 13px; }
+
+    /* Back button used inline above pips */
+    .back-btn-inline {
+      background: none;
+      border: none;
+      color: #6a6c8c;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 16px;
+      width: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+    .back-btn-inline:hover { color: #060a40; opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="card" id="app"></div>
+<div class="card" id="results-card" style="margin-top:16px;display:none;max-width:420px;margin-left:auto;margin-right:auto;"></div>
+
+<script>
+// ── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ──────
+(function () {
+  var _address = null;
+  var _listeners = [];
+  var _dataListeners = [];
+  var _requestCounter = 0;
+  var _pending = {};
+
+  window.addEventListener("message", function (event) {
+    var d = event.data;
+    if (!d || !d.type) return;
+    switch (d.type) {
+      case "app_data":
+        _dataListeners.forEach(function (fn) { fn(d.data); });
+        break;
+      case "wallet_connected":
+        _address = d.address;
+        _listeners.forEach(function (fn) { fn(_address); });
+        break;
+      case "wallet_disconnected":
+        _address = null;
+        _listeners.forEach(function (fn) { fn(null); });
+        break;
+      case "sign_success":
+        if (_pending[d.requestId]) {
+          _pending[d.requestId].resolve({ signature: d.signature, verified: d.verified });
+          delete _pending[d.requestId];
+        }
+        break;
+      case "sign_rejected":
+        if (_pending[d.requestId]) {
+          _pending[d.requestId].reject(new Error(d.error || d.reason || "Rejected"));
+          delete _pending[d.requestId];
+        }
+        break;
+    }
+  });
+
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: "request_address" }, "*");
+  }
+
+  window.MiniappSDK = {
+    isMiniappMode: function () { return window.parent !== window; },
+    onWalletChange: function (fn) {
+      _listeners.push(fn);
+      fn(_address);
+      return function () {
+        var idx = _listeners.indexOf(fn);
+        if (idx !== -1) _listeners.splice(idx, 1);
+      };
+    },
+    signMessage: function (message, signatureType) {
+      return new Promise(function (resolve, reject) {
+        var requestId = "req_" + (++_requestCounter);
+        _pending[requestId] = { resolve: resolve, reject: reject };
+        window.parent.postMessage({
+          type: "sign_message",
+          requestId: requestId,
+          message: message,
+          signatureType: signatureType || "erc1271"
+        }, "*");
+      });
+    }
+  };
+})();
+</script>
+
+<script>
+// ── Supabase config (tokens injected by CI) ───────────────────────────────────
+const SUPABASE_URL      = "";
+const SUPABASE_ANON_KEY = "";
+
+// Minimal Supabase REST helper — no npm needed
+const sb = {
+  async insert(row) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/votes`, {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "apikey":         SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Prefer":        "return=minimal",
+      },
+      body: JSON.stringify(row),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || res.statusText);
+    }
+  },
+  async selectAll() {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/votes?select=rank1,rank2,rank3,rank4`,
+      {
+        headers: {
+          "apikey":         SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  },
+};
+
+// ── Options ───────────────────────────────────────────────────────────────────
+const OPTIONS = [
+  { id: "wot",   label: "The Web of Trust", icon: "🕸️" },
+  { id: "fun",   label: "Fun Money",         icon: "🎉" },
+  { id: "tribe", label: "Tribal Money",      icon: "🏕️" },
+  { id: "spend", label: "Spend Thanks",      icon: "🙏" },
+];
+
+// Points awarded per rank position
+const POINTS = [4, 3, 2, 1]; // 1st=4, 2nd=3, 3rd=2, 4th=1
+
+// ── State ─────────────────────────────────────────────────────────────────────
+// Flow:
+//   step 0 — show all 4, pick MOST resonant  → stored as rank[0]
+//   step 1 — show all 4, pick LEAST resonant → stored as rank[3]
+//   step 2 — show remaining 2, pick preferred → rank[1]; other is rank[2]
+//   step 3 — confirm
+//   step 4 — done
+const state = {
+  wallet:  null,
+  step:    0,
+  rank:    [null, null, null, null], // [1st, 2nd, 3rd, 4th] option ids
+  signing: false,
+  error:   null,
+};
+
+// ── Results ───────────────────────────────────────────────────────────────────
+const resultsCard = document.getElementById("results-card");
+
+async function renderResults() {
+  resultsCard.style.display = "block";
+  resultsCard.innerHTML = `
+    <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;margin-bottom:4px;">Live results</div>
+    <div style="font-size:13px;color:#9b9db3;">Loading…</div>`;
+
+  let rows;
+  try {
+    rows = await sb.selectAll();
+  } catch (e) {
+    resultsCard.innerHTML = `
+      <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;margin-bottom:4px;">Live results</div>
+      <div class="msg msg-error visible">Could not load results: ${e.message}</div>`;
+    return;
+  }
+
+  const total = rows.length;
+
+  // Tally weighted scores and first-place counts
+  const scores    = {};
+  const firstPlace = {};
+  OPTIONS.forEach(o => { scores[o.id] = 0; firstPlace[o.id] = 0; });
+
+  rows.forEach(row => {
+    [row.rank1, row.rank2, row.rank3, row.rank4].forEach((id, i) => {
+      if (id && scores[id] !== undefined) scores[id] += POINTS[i];
+    });
+    if (row.rank1 && firstPlace[row.rank1] !== undefined) firstPlace[row.rank1]++;
+  });
+
+  // Sort by score descending
+  const sorted = [...OPTIONS].sort((a, b) => scores[b.id] - scores[a.id]);
+  const maxScore = sorted[0] ? scores[sorted[0].id] : 1;
+
+  const rankLabels = ["🥇", "🥈", "🥉", "4th"];
+
+  const rows_html = sorted.map((o, i) => {
+    const pct = maxScore > 0 ? Math.round((scores[o.id] / maxScore) * 100) : 0;
+    return `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:14px;font-weight:600;color:#060a40;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">${o.icon}</span>${o.label}
+          </span>
+          <span style="font-size:12px;font-weight:600;color:#6a6c8c;">${scores[o.id]} pts</span>
+        </div>
+        <div style="background:#ede1d8;border-radius:999px;height:6px;overflow:hidden;">
+          <div style="background:#060a40;height:6px;border-radius:999px;width:${pct}%;transition:width 0.4s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <span style="font-size:11px;color:#9b9db3;">${rankLabels[i]} place</span>
+          <span style="font-size:11px;color:#9b9db3;">#1 pick by ${firstPlace[o.id]} voter${firstPlace[o.id] !== 1 ? "s" : ""}</span>
+        </div>
+      </div>`;
+  }).join("");
+
+  resultsCard.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;">Live results</div>
+      <div style="font-size:12px;color:#9b9db3;">${total} vote${total !== 1 ? "s" : ""} total</div>
+    </div>
+    ${rows_html}
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #ede1d8;">
+      <div style="font-size:11px;color:#9b9db3;line-height:1.6;">
+        <strong style="color:#6a6c8c;font-weight:600;">How scores work:</strong>
+        each voter ranks all four options. 1st place = 4 pts, 2nd = 3 pts, 3rd = 2 pts, 4th = 1 pt.
+        Scores are summed across all voters.
+      </div>
+    </div>`;
+}
+
+function remaining() {
+  // Options that are neither most (rank[0]) nor least (rank[3])
+  return OPTIONS.filter(o => o.id !== state.rank[0] && o.id !== state.rank[3]);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const app = document.getElementById("app");
+function byId(id) { return OPTIONS.find(o => o.id === id); }
+
+function topbar() {
+  return `<div class="topbar">
+    <span class="conn-dot connected"></span>
+    <span class="conn-label">Wallet connected</span>
+  </div>`;
+}
+
+function pips(active) {
+  return `<div class="pips">${[0,1,2,3].map(i =>
+    `<div class="pip ${i < active ? "done" : i === active ? "active" : ""}"></div>`
+  ).join("")}</div>`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const { step, signing, error, wallet, rank } = state;
+
+  // ── Gate: not connected ───────────────────────────────────────────────────
+  if (!wallet) {
+    app.innerHTML = `
+      <div class="gate-screen">
+        <div class="gate-icon">🔐</div>
+        <div class="gate-title">Connect your wallet to vote</div>
+        <div class="gate-sub">
+          This app runs inside the Gnosis app.<br/>
+          Log in with your existing account or create one to get started.
+        </div>
+        <a class="gate-btn" href="https://app.gnosis.io" target="_blank" rel="noopener">
+          Open Gnosis app ↗
+        </a>
+        <div class="gate-hint">
+          Don't have an account yet?
+          <a href="https://app.gnosis.io" target="_blank" rel="noopener">Create one for free</a>
+          — it only takes a minute.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Done ──────────────────────────────────────────────────────────────────
+  if (step === 4) {
+    app.innerHTML = `
+      ${topbar()}
+      <div class="done-screen">
+        <div class="done-icon">✅</div>
+        <div class="done-title">Vote recorded!</div>
+        <div class="done-sub">Your ranking has been signed and saved.</div>
+        <div class="ranking">
+          ${rank.map((id, i) => {
+            const o = byId(id);
+            return `<div class="ranking-row rank-${i+1}">
+              <span class="rank-num">${i+1}</span>
+              <span>${o ? o.icon + " " + o.label : id}</span>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    renderResults();
+    return;
+  }
+
+  // ── Confirm ────────────────────────────────────────────────────────────────
+  if (step === 3) {
+    app.innerHTML = `
+      ${topbar()}
+      ${pips(3)}
+      <div class="confirm-heading">Confirm your ranking</div>
+      <div class="confirm-sub">Sign with your Gnosis passkey to submit.</div>
+      <div class="summary">
+        ${rank.map((id, i) => {
+          const o = byId(id);
+          const labels = ["🥇 Most resonant", "2nd", "3rd", "🔻 Least resonant"];
+          return `<div class="summary-row">
+            <span class="summary-key">${labels[i]}</span>
+            <span class="summary-val">${o ? o.icon + " " + o.label : id}</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btn-back" ${signing ? "disabled" : ""}>← Back</button>
+        <button class="btn btn-primary" id="btn-submit" ${signing || !wallet ? "disabled" : ""}>
+          ${signing ? '<span class="spinner"></span>Signing…' : '✍️ Sign &amp; Submit'}
+        </button>
+      </div>
+      <div class="msg msg-error ${error ? "visible" : ""}">${error || ""}</div>`;
+
+    document.getElementById("btn-back").addEventListener("click", () => {
+      // Go back to step 2 (middle pick), reset rank[1] and rank[2]
+      state.rank[1] = null;
+      state.rank[2] = null;
+      state.error = null;
+      state.step = 2;
+      render();
+    });
+    document.getElementById("btn-submit").addEventListener("click", submitVote);
+    return;
+  }
+
+  // ── Round 0: pick MOST ─────────────────────────────────────────────────────
+  if (step === 0) {
+    app.innerHTML = `
+      ${topbar()}
+      ${pips(0)}
+      <div class="round-heading">Round 1 of 3</div>
+      <div class="question">Which resonates with you the most?</div>
+      <div class="options">
+        ${OPTIONS.map(o => `
+          <button class="opt" data-id="${o.id}">
+            <span class="opt-icon">${o.icon}</span>
+            ${o.label}
+          </button>`).join("")}
+      </div>`;
+
+    app.querySelectorAll(".opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.rank[0] = btn.dataset.id;
+        state.step = 1;
+        render();
+      });
+    });
+    return;
+  }
+
+  // ── Round 1: pick LEAST ────────────────────────────────────────────────────
+  if (step === 1) {
+    app.innerHTML = `
+      ${topbar()}
+      ${pips(1)}
+      <div class="round-heading">Round 2 of 3</div>
+      <div class="question">Which resonates with you the least?</div>
+      <div class="options">
+        ${OPTIONS.map(o => {
+          const isMost = o.id === rank[0];
+          return `<button class="opt ${isMost ? "most" : ""}" data-id="${o.id}" ${isMost ? "disabled" : ""}>
+            <span class="opt-icon">${o.icon}</span>
+            ${o.label}
+            ${isMost ? '<span class="opt-badge badge-most">Most</span>' : ""}
+          </button>`;
+        }).join("")}
+      </div>`;
+
+    // back arrow — top-left pill
+    const backBtn = document.createElement("button");
+    backBtn.className = "back-btn-inline";
+    backBtn.textContent = "← Back";
+    backBtn.addEventListener("click", () => {
+      state.rank[0] = null;
+      state.step = 0;
+      render();
+    });
+    app.insertBefore(backBtn, app.querySelector(".pips"));
+
+    app.querySelectorAll(".opt:not([disabled])").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.rank[3] = btn.dataset.id;
+        state.step = 2;
+        render();
+      });
+    });
+    return;
+  }
+
+  // ── Round 2: pick preferred of remaining 2 ─────────────────────────────────
+  if (step === 2) {
+    const rest = remaining();
+    app.innerHTML = `
+      ${topbar()}
+      ${pips(2)}
+      <div class="round-heading">Round 3 of 3</div>
+      <div class="question">And which resonates more?</div>
+      <div class="options">
+        ${rest.map(o => `
+          <button class="opt" data-id="${o.id}">
+            <span class="opt-icon">${o.icon}</span>
+            ${o.label}
+          </button>`).join("")}
+      </div>`;
+
+    const backBtn2 = document.createElement("button");
+    backBtn2.className = "back-btn-inline";
+    backBtn2.textContent = "← Back";
+    backBtn2.addEventListener("click", () => {
+      state.rank[3] = null;
+      state.step = 1;
+      render();
+    });
+    app.insertBefore(backBtn2, app.querySelector(".pips"));
+
+    app.querySelectorAll(".opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const picked = btn.dataset.id;
+        const other  = rest.find(o => o.id !== picked);
+        state.rank[1] = picked;
+        state.rank[2] = other ? other.id : null;
+        state.step = 3;
+        render();
+      });
+    });
+    return;
+  }
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function submitVote() {
+  if (!state.wallet) { state.error = "No wallet connected."; render(); return; }
+
+  state.signing = true;
+  state.error   = null;
+  render();
+
+  const payload = JSON.stringify({
+    action:    "ps_vote",
+    voter:     state.wallet,
+    rank1st:   state.rank[0],
+    rank2nd:   state.rank[1],
+    rank3rd:   state.rank[2],
+    rank4th:   state.rank[3],
+    timestamp: Date.now(),
+  });
+
+  try {
+    const result = await window.MiniappSDK.signMessage(payload, "erc1271");
+
+    // Write to Supabase
+    await sb.insert({
+      wallet:    state.wallet.toLowerCase(),
+      rank1:     state.rank[0],
+      rank2:     state.rank[1],
+      rank3:     state.rank[2],
+      rank4:     state.rank[3],
+      signature: result.signature,
+      verified:  result.verified,
+    });
+
+    state.signing = false;
+    state.step    = 4;
+    render();
+  } catch (err) {
+    state.signing = false;
+    state.error   = err.message || "Signing or submission failed.";
+    render();
+  }
+}
+
+// ── Wallet watcher ────────────────────────────────────────────────────────────
+window.MiniappSDK.onWalletChange(function (address) {
+  state.wallet = address;
+  render();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+render();
+
+// Show results immediately for anyone visiting (connected or not)
+// — but only once Supabase tokens are real (not placeholder)
+if (SUPABASE_URL !== "") {
+  renderResults();
+}
+</script>
+</body>
+</html>
