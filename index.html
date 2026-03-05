@@ -248,6 +248,46 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Gate screen (not connected) */
+    .gate-screen { text-align: center; padding: 8px 0 4px; }
+    .gate-icon   { font-size: 3rem; margin-bottom: 18px; }
+    .gate-title  { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+    .gate-sub    {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+    .gate-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 15px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+      margin-bottom: 12px;
+    }
+    .gate-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .gate-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .gate-hint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .gate-hint a:hover { text-decoration: underline; }
+
     /* Done screen */
     .done-screen { text-align: center; padding: 8px 0 4px; }
     .done-icon   { font-size: 3rem; margin-bottom: 16px; }
@@ -408,8 +448,8 @@ function byId(id) { return OPTIONS.find(o => o.id === id); }
 
 function topbar() {
   return `<div class="topbar">
-    <span class="conn-dot ${state.wallet ? "connected" : ""}"></span>
-    <span class="conn-label">${state.wallet ? "Wallet connected" : "No wallet connected"}</span>
+    <span class="conn-dot connected"></span>
+    <span class="conn-label">Wallet connected</span>
   </div>`;
 }
 
@@ -422,6 +462,28 @@ function pips(active) {
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   const { step, signing, error, wallet, rank } = state;
+
+  // ── Gate: not connected ───────────────────────────────────────────────────
+  if (!wallet) {
+    app.innerHTML = `
+      <div class="gate-screen">
+        <div class="gate-icon">🔐</div>
+        <div class="gate-title">Connect your wallet to vote</div>
+        <div class="gate-sub">
+          This app runs inside the Gnosis app.<br/>
+          Log in with your existing account or create one to get started.
+        </div>
+        <a class="gate-btn" href="https://app.gnosis.io" target="_blank" rel="noopener">
+          Open Gnosis app ↗
+        </a>
+        <div class="gate-hint">
+          Don't have an account yet?
+          <a href="https://app.gnosis.io" target="_blank" rel="noopener">Create one for free</a>
+          — it only takes a minute.
+        </div>
+      </div>`;
+    return;
+  }
 
   // ── Done ──────────────────────────────────────────────────────────────────
   if (step === 4) {
@@ -466,9 +528,6 @@ function render() {
         <button class="btn btn-primary" id="btn-submit" ${signing || !wallet ? "disabled" : ""}>
           ${signing ? '<span class="spinner"></span>Signing…' : '✍️ Sign &amp; Submit'}
         </button>
-      </div>
-      <div class="msg msg-info ${!wallet ? "visible" : ""}">
-        Open this app inside the Circles miniapp host to connect your wallet.
       </div>
       <div class="msg msg-error ${error ? "visible" : ""}">${error || ""}</div>`;
 
