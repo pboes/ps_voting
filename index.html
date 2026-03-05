@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Favourite Picker</title>
+  <title>Pick Your Favourite</title>
   <style>
     :root {
       --bg: #0f1117;
@@ -12,13 +12,12 @@
       --border: #2e3347;
       --accent: #6c63ff;
       --accent-hover: #857dff;
-      --accent-dim: #6c63ff33;
+      --accent-dim: #6c63ff22;
       --text: #e8eaf6;
       --text-muted: #8b90a7;
       --success: #4caf93;
       --error: #e05c5c;
-      --radius: 14px;
-      --transition: 0.2s ease;
+      --radius: 16px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,278 +31,258 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 20px;
     }
 
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 36px 32px;
+      padding: 32px 28px;
       width: 100%;
-      max-width: 520px;
-      box-shadow: 0 8px 40px #00000055;
+      max-width: 480px;
+      box-shadow: 0 8px 40px #00000066;
     }
 
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 6px;
-    }
-
-    .subtitle {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      margin-bottom: 28px;
-    }
-
-    /* Progress bar */
-    .progress-wrap {
+    /* Top bar: connection status */
+    .topbar {
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 7px;
       margin-bottom: 28px;
     }
 
-    .progress-step {
-      flex: 1;
-      height: 4px;
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
       background: var(--border);
-      border-radius: 2px;
-      transition: background var(--transition);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .conn-dot.connected { background: var(--success); }
+
+    .conn-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
     }
 
-    .progress-step.done   { background: var(--success); }
-    .progress-step.active { background: var(--accent); }
+    /* Progress pip track */
+    .pips {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+    .pip {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .pip.done   { background: var(--success); }
+    .pip.active { background: var(--accent); }
 
-    /* Round label */
-    .round-label {
-      font-size: 0.75rem;
+    /* Round heading */
+    .round-heading {
+      font-size: 0.72rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       color: var(--text-muted);
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
 
     .question {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 20px;
-      line-height: 1.5;
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 22px;
+      color: var(--text);
     }
 
-    /* Option buttons */
+    /* Option cards */
     .options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .option-btn {
+    .opt {
       background: var(--surface2);
       border: 2px solid var(--border);
       border-radius: var(--radius);
       color: var(--text);
       cursor: pointer;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 28px 16px;
-      text-align: center;
-      transition: border-color var(--transition), background var(--transition), transform var(--transition);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .option-btn .opt-letter {
-      font-size: 2rem;
-      line-height: 1;
-    }
-
-    .option-btn .opt-label {
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .option-btn:hover:not(:disabled) {
-      border-color: var(--accent);
-      background: var(--accent-dim);
-      transform: translateY(-2px);
-    }
-
-    .option-btn.selected {
-      border-color: var(--accent);
-      background: var(--accent-dim);
-    }
-
-    .option-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    /* Nav buttons */
-    .nav {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 13px 20px;
-      border-radius: var(--radius);
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: background var(--transition), opacity var(--transition), transform var(--transition);
+      padding: 18px 22px;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      line-height: 1.3;
     }
 
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
+    .opt-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
     }
 
-    .btn-primary:hover:not(:disabled) {
-      background: var(--accent-hover);
+    .opt:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
       transform: translateY(-1px);
     }
 
-    .btn-primary:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    .opt.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
     }
 
-    .btn-ghost {
-      background: var(--surface2);
-      color: var(--text-muted);
-      border: 1px solid var(--border);
+    /* Confirm screen */
+    .confirm-heading {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 6px;
     }
 
-    .btn-ghost:hover:not(:disabled) {
-      background: var(--border);
-      color: var(--text);
-    }
-
-    /* Status / result panels */
-    .status-panel {
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      font-size: 0.88rem;
-      line-height: 1.6;
-      margin-top: 18px;
-      display: none;
-    }
-
-    .status-panel.visible { display: block; }
-
-    .status-panel.info    { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--text); }
-    .status-panel.success { background: #4caf9322; border: 1px solid var(--success); color: var(--success); }
-    .status-panel.error   { background: #e05c5c22; border: 1px solid var(--error); color: var(--error); }
-
-    /* Wallet badge */
-    .wallet-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 5px 12px;
-      font-size: 0.78rem;
+    .confirm-sub {
+      font-size: 0.85rem;
       color: var(--text-muted);
       margin-bottom: 24px;
+      line-height: 1.5;
     }
 
-    .wallet-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--text-muted);
-    }
-
-    .wallet-dot.connected { background: var(--success); }
-
-    /* Summary / confirm screen */
     .summary {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 20px;
+      overflow: hidden;
+      margin-bottom: 22px;
     }
 
     .summary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
+      padding: 13px 18px;
       border-bottom: 1px solid var(--border);
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
-
     .summary-row:last-child { border-bottom: none; }
     .summary-key { color: var(--text-muted); }
-    .summary-val { font-weight: 700; font-size: 1.1rem; }
+    .summary-val { font-weight: 700; font-size: 0.95rem; text-align: right; max-width: 58%; }
 
-    /* Already voted screen */
-    .already-voted {
-      text-align: center;
-      padding: 12px 0;
+    .btn-row {
+      display: flex;
+      gap: 10px;
     }
 
-    .big-icon { font-size: 3rem; margin-bottom: 16px; }
+    .btn {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, opacity 0.15s, transform 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      flex: 0 0 auto;
+      padding: 14px 20px;
+    }
+    .btn-ghost:hover { background: var(--border); color: var(--text); }
+
+    .err-msg {
+      margin-top: 14px;
+      background: #e05c5c18;
+      border: 1px solid var(--error);
+      border-radius: 10px;
+      color: var(--error);
+      font-size: 0.83rem;
+      padding: 11px 14px;
+      line-height: 1.5;
+      display: none;
+    }
+    .err-msg.visible { display: block; }
+
+    .no-wallet-msg {
+      margin-top: 14px;
+      background: #6c63ff18;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-size: 0.83rem;
+      padding: 11px 14px;
+      line-height: 1.5;
+      display: none;
+    }
+    .no-wallet-msg.visible { display: block; }
 
     /* Spinner */
     .spinner {
       display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ffffff55;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ffffff44;
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       vertical-align: middle;
       margin-right: 6px;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* vs separator */
-    .vs-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.1em;
-      grid-column: 1 / -1;
+    /* Done screen */
+    .done-screen {
+      text-align: center;
+      padding: 8px 0 4px;
     }
+    .done-icon { font-size: 3rem; margin-bottom: 16px; }
+    .done-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+    .done-sub { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+    .done-winner {
+      margin-top: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .done-winner span { color: var(--accent); }
 
-    /* Responsive */
-    @media (max-width: 400px) {
-      .card { padding: 28px 20px; }
-      .options { grid-template-columns: 1fr; }
+    @media (max-width: 380px) {
+      .card { padding: 24px 16px; }
     }
   </style>
 </head>
 <body>
 
-<div class="card" id="app">
-  <!-- injected by JS -->
-</div>
+<div class="card" id="app"></div>
 
-<!-- Inline the SDK (ESM → IIFE shim so it works as a plain script) -->
 <script>
-// ─── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ─────
+// ── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ──────
 (function () {
   var _address = null;
   var _listeners = [];
@@ -346,12 +325,8 @@
   }
 
   window.MiniappSDK = {
-    isMiniappMode: function () {
-      return typeof window !== "undefined" && window.parent !== window;
-    },
-    onAppData: function (fn) {
-      _dataListeners.push(fn);
-    },
+    isMiniappMode: function () { return window.parent !== window; },
+    onAppData: function (fn) { _dataListeners.push(fn); },
     onWalletChange: function (fn) {
       _listeners.push(fn);
       fn(_address);
@@ -359,13 +334,6 @@
         var idx = _listeners.indexOf(fn);
         if (idx !== -1) _listeners.splice(idx, 1);
       };
-    },
-    sendTransactions: function (transactions) {
-      return new Promise(function (resolve, reject) {
-        var requestId = "req_" + (++_requestCounter);
-        _pending[requestId] = { resolve: resolve, reject: reject };
-        window.parent.postMessage({ type: "send_transactions", requestId: requestId, transactions: transactions }, "*");
-      });
     },
     signMessage: function (message, signatureType) {
       return new Promise(function (resolve, reject) {
@@ -379,18 +347,19 @@
 </script>
 
 <script>
-// ─── App ──────────────────────────────────────────────────────────────────────
-
-// ── Options ──────────────────────────────────────────────────────────────────
-const OPTIONS = {
-  A: { letter: "A", label: "Option A" },
-  B: { letter: "B", label: "Option B" },
-  C: { letter: "C", label: "Option C" },
-  D: { letter: "D", label: "Option D" },
-};
+// ── Options ───────────────────────────────────────────────────────────────────
+const OPTIONS = [
+  { id: "wot",   label: "The Web of Trust", icon: "🕸️"  },
+  { id: "fun",   label: "Fun Money",         icon: "🎉"  },
+  { id: "tribe", label: "Tribal Money",      icon: "🏕️"  },
+  { id: "spend", label: "Spend Thanks",      icon: "🙏"  },
+];
+// Round 1: options[0] vs options[1]  (Web of Trust vs Fun Money)
+// Round 2: options[2] vs options[3]  (Tribal Money  vs Spend Thanks)
+// Final:   r1winner   vs r2winner
 
 // ── DB (localStorage) ─────────────────────────────────────────────────────────
-const DB_KEY = "ps_voting_votes";
+const DB_KEY = "ps_voting_votes_v2";
 
 function loadVotes() {
   try { return JSON.parse(localStorage.getItem(DB_KEY) || "{}"); }
@@ -399,233 +368,171 @@ function loadVotes() {
 
 function saveVote(address, voteData) {
   const votes = loadVotes();
-  votes[address.toLowerCase()] = { ...voteData, timestamp: Date.now() };
+  votes[(address || "anon").toLowerCase()] = { ...voteData, timestamp: Date.now() };
   localStorage.setItem(DB_KEY, JSON.stringify(votes));
-}
-
-function hasVoted(address) {
-  const votes = loadVotes();
-  return !!votes[address.toLowerCase()];
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
-  wallet: null,        // connected address or null
-  step: 0,             // 0=r1, 1=r2, 2=final, 3=confirm, 4=done, -1=already_voted
-  r1Winner: null,      // winner of A vs B
-  r2Winner: null,      // winner of C vs D
-  champion: null,      // overall winner
-  r1Pick: null,
-  r2Pick: null,
-  finalPick: null,
-  signing: false,
-  error: null,
+  wallet:    null,   // address string or null
+  step:      0,      // 0=r1  1=r2  2=final  3=confirm  4=done
+  r1Winner:  null,   // option id
+  r2Winner:  null,
+  champion:  null,
+  signing:   false,
+  error:     null,
 };
 
-// ── Rendering ─────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const app = document.getElementById("app");
 
+function optById(id) { return OPTIONS.find(o => o.id === id); }
+
+function pips(activeStep) {
+  return `<div class="pips">${[0,1,2,3].map(i =>
+    `<div class="pip ${i < activeStep ? "done" : i === activeStep ? "active" : ""}"></div>`
+  ).join("")}</div>`;
+}
+
+function topbar() {
+  const connected = !!state.wallet;
+  return `<div class="topbar">
+    <span class="conn-dot ${connected ? "connected" : ""}"></span>
+    <span class="conn-label">${connected ? "Wallet connected" : "No wallet connected"}</span>
+  </div>`;
+}
+
+function optCard(opt) {
+  return `<button class="opt" data-id="${opt.id}">
+    <span class="opt-icon">${opt.icon}</span>
+    ${opt.label}
+  </button>`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
 function render() {
-  const { wallet, step, signing, error } = state;
+  const { step, signing, error, wallet, r1Winner, r2Winner, champion } = state;
 
-  // Wallet badge html
-  const walletHtml = `
-    <div class="wallet-badge">
-      <span class="wallet-dot ${wallet ? "connected" : ""}"></span>
-      ${wallet ? truncate(wallet) : "No wallet connected"}
-    </div>`;
-
-  if (step === -1) {
-    app.innerHTML = `
-      ${walletHtml}
-      <div class="already-voted">
-        <div class="big-icon">🗳️</div>
-        <h1>Already Voted</h1>
-        <p class="subtitle" style="margin-top:8px">
-          The address <strong>${truncate(wallet)}</strong> has already cast a vote.<br/>
-          One vote per wallet is allowed.
-        </p>
-        ${renderVoteSummaryFromDB(wallet)}
-      </div>`;
-    return;
-  }
-
+  // ── Done ──
   if (step === 4) {
+    const w = optById(champion);
     app.innerHTML = `
-      ${walletHtml}
-      <div class="already-voted">
-        <div class="big-icon">✅</div>
-        <h1>Vote Recorded!</h1>
-        <p class="subtitle" style="margin-top:8px">
-          Your favourite <strong>${state.champion}</strong> has been saved on-chain-signed and stored locally.
-        </p>
-        ${renderVoteSummaryFromDB(wallet)}
+      ${topbar()}
+      <div class="done-screen">
+        <div class="done-icon">✅</div>
+        <div class="done-title">Vote recorded!</div>
+        <div class="done-sub">Your choice has been signed and saved.</div>
+        <div class="done-winner">Your favourite: <span>${w ? w.icon + " " + w.label : champion}</span></div>
       </div>`;
     return;
   }
 
-  const steps = [
-    { label: "Round 1 · A vs B" },
-    { label: "Round 2 · C vs D" },
-    { label: "Final · Winner vs Winner" },
-    { label: "Confirm & Sign" },
-  ];
-
-  const progressHtml = `
-    <div class="progress-wrap">
-      ${steps.map((s, i) => `<div class="progress-step ${i < step ? "done" : i === step ? "active" : ""}"></div>`).join("")}
-    </div>`;
-
+  // ── Confirm ──
   if (step === 3) {
-    // Confirm screen
+    const r1 = optById(r1Winner);
+    const r2 = optById(r2Winner);
+    const ch = optById(champion);
     app.innerHTML = `
-      ${walletHtml}
-      <h1>Confirm Your Vote</h1>
-      <p class="subtitle">Review your choices, then sign with your Gnosis passkey.</p>
-      ${progressHtml}
+      ${topbar()}
+      ${pips(3)}
+      <div class="confirm-heading">Confirm your vote</div>
+      <div class="confirm-sub">Sign with your Gnosis passkey to submit.</div>
       <div class="summary">
         <div class="summary-row">
-          <span class="summary-key">Round 1 (A vs B)</span>
-          <span class="summary-val">${state.r1Winner}</span>
+          <span class="summary-key">Round 1</span>
+          <span class="summary-val">${r1 ? r1.icon + " " + r1.label : r1Winner}</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Round 2 (C vs D)</span>
-          <span class="summary-val">${state.r2Winner}</span>
+          <span class="summary-key">Round 2</span>
+          <span class="summary-val">${r2 ? r2.icon + " " + r2.label : r2Winner}</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">🏆 Your Favourite</span>
-          <span class="summary-val">${state.champion}</span>
+          <span class="summary-key">🏆 Favourite</span>
+          <span class="summary-val">${ch ? ch.icon + " " + ch.label : champion}</span>
         </div>
       </div>
-      <div class="nav">
+      <div class="btn-row">
         <button class="btn btn-ghost" id="btn-back" ${signing ? "disabled" : ""}>← Back</button>
         <button class="btn btn-primary" id="btn-submit" ${signing || !wallet ? "disabled" : ""}>
-          ${signing ? '<span class="spinner"></span>Signing…' : '✍️ Sign & Submit'}
+          ${signing ? '<span class="spinner"></span>Signing…' : '✍️ Sign &amp; Submit'}
         </button>
       </div>
-      ${!wallet ? `<div class="status-panel info visible">⚠️ Open this app inside the Circles miniapp host to connect your wallet and sign.</div>` : ""}
-      ${error ? `<div class="status-panel error visible">⚠️ ${error}</div>` : ""}`;
+      <div class="no-wallet-msg ${!wallet ? "visible" : ""}">
+        Open this app inside the Circles miniapp host to connect your wallet.
+      </div>
+      <div class="err-msg ${error ? "visible" : ""}">${error || ""}</div>`;
 
-    document.getElementById("btn-back").addEventListener("click", () => { state.error = null; goToStep(2); });
+    document.getElementById("btn-back").addEventListener("click", () => { state.error = null; state.step = 2; render(); });
     document.getElementById("btn-submit").addEventListener("click", submitVote);
     return;
   }
 
-  // Wizard steps 0-2
+  // ── Wizard steps 0‑2 ──
   const rounds = [
-    { left: OPTIONS.A, right: OPTIONS.B, pick: state.r1Pick, key: "r1Pick", label: "Round 1 of 3 — Choose your favourite" },
-    { left: OPTIONS.C, right: OPTIONS.D, pick: state.r2Pick, key: "r2Pick", label: "Round 2 of 3 — Choose your favourite" },
+    { left: OPTIONS[0], right: OPTIONS[1], label: "Which do you prefer?" },
+    { left: OPTIONS[2], right: OPTIONS[3], label: "Which do you prefer?" },
     {
-      left:  OPTIONS[state.r1Winner] || { letter: "?", label: "TBD" },
-      right: OPTIONS[state.r2Winner] || { letter: "?", label: "TBD" },
-      pick:  state.finalPick,
-      key:   "finalPick",
-      label: "Final Round — Pick your overall favourite",
+      left:  optById(r1Winner) || OPTIONS[0],
+      right: optById(r2Winner) || OPTIONS[2],
+      label: "And your overall favourite?",
     },
   ];
 
+  const roundNames = ["Round 1 of 3", "Round 2 of 3", "Final round"];
   const round = rounds[step];
-  const canNext = !!round.pick;
 
   app.innerHTML = `
-    ${walletHtml}
-    <h1>Pick Your Favourite</h1>
-    <p class="subtitle">Three quick rounds to find your top pick.</p>
-    ${progressHtml}
-    <div class="round-label">${steps[step].label}</div>
-    <p class="question">${round.label}</p>
+    ${topbar()}
+    ${pips(step)}
+    <div class="round-heading">${roundNames[step]}</div>
+    <div class="question">${round.label}</div>
     <div class="options">
-      ${optionBtn(round.left, round.pick === round.left.letter, "left")}
-      ${optionBtn(round.right, round.pick === round.right.letter, "right")}
-    </div>
-    <div class="nav">
-      ${step > 0 ? `<button class="btn btn-ghost" id="btn-back">← Back</button>` : ""}
-      <button class="btn btn-primary" id="btn-next" ${canNext ? "" : "disabled"}>
-        ${step === 2 ? "Review →" : "Next →"}
-      </button>
+      ${optCard(round.left)}
+      ${optCard(round.right)}
     </div>`;
 
-  document.querySelectorAll(".option-btn").forEach(btn => {
+  app.querySelectorAll(".opt").forEach(btn => {
     btn.addEventListener("click", () => {
-      const letter = btn.dataset.letter;
-      state[round.key] = letter;
-      // Recalculate winners
-      if (step === 0) state.r1Winner = letter;
-      if (step === 1) state.r2Winner = letter;
-      if (step === 2) state.champion = letter;
+      const id = btn.dataset.id;
+      if (step === 0) { state.r1Winner = id; }
+      if (step === 1) { state.r2Winner = id; }
+      if (step === 2) { state.champion = id; }
+      // Auto-advance
+      if (step < 2) {
+        state.step = step + 1;
+      } else {
+        state.step = 3; // go to confirm
+      }
       render();
     });
   });
-
-  if (step > 0) document.getElementById("btn-back").addEventListener("click", () => goToStep(step - 1));
-  document.getElementById("btn-next").addEventListener("click", () => {
-    if (!canNext) return;
-    if (step === 2) goToStep(3);
-    else goToStep(step + 1);
-  });
 }
 
-function optionBtn(opt, selected, side) {
-  return `
-    <button class="option-btn ${selected ? "selected" : ""}" data-letter="${opt.letter}" data-side="${side}">
-      <span class="opt-letter">${opt.letter}</span>
-      <span class="opt-label">${opt.label}</span>
-    </button>`;
-}
-
-function renderVoteSummaryFromDB(wallet) {
-  if (!wallet) return "";
-  const votes = loadVotes();
-  const entry = votes[wallet.toLowerCase()];
-  if (!entry) return "";
-  const d = new Date(entry.timestamp);
-  return `
-    <div class="summary" style="margin-top:20px;text-align:left">
-      <div class="summary-row"><span class="summary-key">Your Favourite</span><span class="summary-val">${entry.champion}</span></div>
-      <div class="summary-row"><span class="summary-key">Round 1 winner</span><span class="summary-val">${entry.r1Winner}</span></div>
-      <div class="summary-row"><span class="summary-key">Round 2 winner</span><span class="summary-val">${entry.r2Winner}</span></div>
-      <div class="summary-row"><span class="summary-key">Voted at</span><span class="summary-val" style="font-size:0.8rem;font-weight:500">${d.toLocaleString()}</span></div>
-    </div>`;
-}
-
-function goToStep(n) {
-  state.step = n;
-  state.error = null;
-  render();
-}
-
-function truncate(addr) {
-  if (!addr) return "";
-  return addr.slice(0, 6) + "…" + addr.slice(-4);
-}
-
-// ── Vote submission ───────────────────────────────────────────────────────────
+// ── Submit ────────────────────────────────────────────────────────────────────
 async function submitVote() {
   if (!state.wallet) { state.error = "No wallet connected."; render(); return; }
-  if (hasVoted(state.wallet)) { state.step = -1; render(); return; }
 
   state.signing = true;
   state.error = null;
   render();
 
   const payload = JSON.stringify({
-    action: "ps_vote",
-    voter: state.wallet,
-    r1Winner: state.r1Winner,
-    r2Winner: state.r2Winner,
-    champion: state.champion,
+    action:    "ps_vote",
+    voter:     state.wallet,
+    r1Winner:  state.r1Winner,
+    r2Winner:  state.r2Winner,
+    champion:  state.champion,
     timestamp: Date.now(),
   });
 
   try {
     const result = await window.MiniappSDK.signMessage(payload, "erc1271");
-    // Signature obtained — store the vote
     saveVote(state.wallet, {
-      r1Winner: state.r1Winner,
-      r2Winner: state.r2Winner,
-      champion: state.champion,
+      r1Winner:  state.r1Winner,
+      r2Winner:  state.r2Winner,
+      champion:  state.champion,
       signature: result.signature,
-      verified: result.verified,
+      verified:  result.verified,
     });
     state.signing = false;
     state.step = 4;
@@ -640,13 +547,6 @@ async function submitVote() {
 // ── Wallet watcher ────────────────────────────────────────────────────────────
 window.MiniappSDK.onWalletChange(function (address) {
   state.wallet = address;
-  if (address && hasVoted(address) && state.step !== 4) {
-    state.step = -1;
-  }
-  // If we were on the already-voted screen but now a different wallet connects
-  if (address && !hasVoted(address) && state.step === -1) {
-    state.step = 0;
-  }
   render();
 });
 
