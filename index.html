@@ -418,8 +418,8 @@
 
 <script>
 // ── Supabase config (tokens injected by CI) ───────────────────────────────────
-const SUPABASE_URL      = "";
-const SUPABASE_ANON_KEY = "";
+const SUPABASE_URL      = "https://tjiihfghtqhlyfghuhbj.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaWloZmdodHFobHlmZ2h1aGJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzQ5MjYsImV4cCI6MjA4ODMxMDkyNn0.xYYSRSliZHrPTqLDKg2lPSa83-lQsGBNSmhgJjQuZ70";
 
 // Minimal Supabase REST helper — no npm needed
 const sb = {
@@ -818,7 +818,7 @@ render();
 
 // Show results immediately for anyone visiting (connected or not)
 // — but only once Supabase tokens are real (not placeholder)
-if (SUPABASE_URL !== "") {
+if (SUPABASE_URL !== "https://tjiihfghtqhlyfghuhbj.supabase.co") {
   renderResults();
 }
 </script>
