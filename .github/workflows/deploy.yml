@@ -11,9 +11,28 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: github-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Check secrets are present
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "${SUPABASE_URL}" ]; then
+            echo "❌ SUPABASE_URL is empty or not set"
+            exit 1
+          else
+            echo "✅ SUPABASE_URL is set (${#SUPABASE_URL} chars)"
+          fi
+          if [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "❌ SUPABASE_ANON_KEY is empty or not set"
+            exit 1
+          else
+            echo "✅ SUPABASE_ANON_KEY is set (${#SUPABASE_ANON_KEY} chars)"
+          fi
 
       - name: Inject env vars into HTML
         env:
@@ -22,6 +41,21 @@ jobs:
         run: |
           sed -i "s|__SUPABASE_URL__|${SUPABASE_URL}|g" index.html
           sed -i "s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|g" index.html
+
+      - name: Verify injection worked
+        run: |
+          if grep -q "__SUPABASE_URL__" index.html; then
+            echo "❌ SUPABASE_URL placeholder was NOT replaced"
+            exit 1
+          else
+            echo "✅ SUPABASE_URL placeholder replaced successfully"
+          fi
+          if grep -q "__SUPABASE_ANON_KEY__" index.html; then
+            echo "❌ SUPABASE_ANON_KEY placeholder was NOT replaced"
+            exit 1
+          else
+            echo "✅ SUPABASE_ANON_KEY placeholder replaced successfully"
+          fi
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
