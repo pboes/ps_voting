@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Favourite Picker</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #252836;
+      --border: #2e3347;
+      --accent: #6c63ff;
+      --accent-hover: #857dff;
+      --accent-dim: #6c63ff33;
+      --text: #e8eaf6;
+      --text-muted: #8b90a7;
+      --success: #4caf93;
+      --error: #e05c5c;
+      --radius: 14px;
+      --transition: 0.2s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 8px 40px #00000055;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .progress-step {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      transition: background var(--transition);
+    }
+
+    .progress-step.done   { background: var(--success); }
+    .progress-step.active { background: var(--accent); }
+
+    /* Round label */
+    .round-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .question {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* Option buttons */
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .option-btn {
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 28px 16px;
+      text-align: center;
+      transition: border-color var(--transition), background var(--transition), transform var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option-btn .opt-letter {
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .option-btn .opt-label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      transform: translateY(-2px);
+    }
+
+    .option-btn.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .option-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Nav buttons */
+    .nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px 20px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background var(--transition), opacity var(--transition), transform var(--transition);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    /* Status / result panels */
+    .status-panel {
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin-top: 18px;
+      display: none;
+    }
+
+    .status-panel.visible { display: block; }
+
+    .status-panel.info    { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--text); }
+    .status-panel.success { background: #4caf9322; border: 1px solid var(--success); color: var(--success); }
+    .status-panel.error   { background: #e05c5c22; border: 1px solid var(--error); color: var(--error); }
+
+    /* Wallet badge */
+    .wallet-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .wallet-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .wallet-dot.connected { background: var(--success); }
+
+    /* Summary / confirm screen */
+    .summary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .summary-row:last-child { border-bottom: none; }
+    .summary-key { color: var(--text-muted); }
+    .summary-val { font-weight: 700; font-size: 1.1rem; }
+
+    /* Already voted screen */
+    .already-voted {
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .big-icon { font-size: 3rem; margin-bottom: 16px; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ffffff55;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* vs separator */
+    .vs-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      grid-column: 1 / -1;
+    }
+
+    /* Responsive */
+    @media (max-width: 400px) {
+      .card { padding: 28px 20px; }
+      .options { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="app">
+  <!-- injected by JS -->
+</div>
+
+<!-- Inline the SDK (ESM → IIFE shim so it works as a plain script) -->
+<script>
+// ─── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ─────
+(function () {
+  var _address = null;
+  var _listeners = [];
+  var _dataListeners = [];
+  var _requestCounter = 0;
+  var _pending = {};
+
+  window.addEventListener("message", function (event) {
+    var d = event.data;
+    if (!d || !d.type) return;
+    switch (d.type) {
+      case "app_data":
+        _dataListeners.forEach(function (fn) { fn(d.data); });
+        break;
+      case "wallet_connected":
+        _address = d.address;
+        _listeners.forEach(function (fn) { fn(_address); });
+        break;
+      case "wallet_disconnected":
+        _address = null;
+        _listeners.forEach(function (fn) { fn(null); });
+        break;
+      case "tx_success":
+        if (_pending[d.requestId]) { _pending[d.requestId].resolve(d.hashes); delete _pending[d.requestId]; }
+        break;
+      case "tx_rejected":
+        if (_pending[d.requestId]) { _pending[d.requestId].reject(new Error(d.error || d.reason || "Rejected")); delete _pending[d.requestId]; }
+        break;
+      case "sign_success":
+        if (_pending[d.requestId]) { _pending[d.requestId].resolve({ signature: d.signature, verified: d.verified }); delete _pending[d.requestId]; }
+        break;
+      case "sign_rejected":
+        if (_pending[d.requestId]) { _pending[d.requestId].reject(new Error(d.error || d.reason || "Rejected")); delete _pending[d.requestId]; }
+        break;
+    }
+  });
+
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: "request_address" }, "*");
+  }
+
+  window.MiniappSDK = {
+    isMiniappMode: function () {
+      return typeof window !== "undefined" && window.parent !== window;
+    },
+    onAppData: function (fn) {
+      _dataListeners.push(fn);
+    },
+    onWalletChange: function (fn) {
+      _listeners.push(fn);
+      fn(_address);
+      return function () {
+        var idx = _listeners.indexOf(fn);
+        if (idx !== -1) _listeners.splice(idx, 1);
+      };
+    },
+    sendTransactions: function (transactions) {
+      return new Promise(function (resolve, reject) {
+        var requestId = "req_" + (++_requestCounter);
+        _pending[requestId] = { resolve: resolve, reject: reject };
+        window.parent.postMessage({ type: "send_transactions", requestId: requestId, transactions: transactions }, "*");
+      });
+    },
+    signMessage: function (message, signatureType) {
+      return new Promise(function (resolve, reject) {
+        var requestId = "req_" + (++_requestCounter);
+        _pending[requestId] = { resolve: resolve, reject: reject };
+        window.parent.postMessage({ type: "sign_message", requestId: requestId, message: message, signatureType: signatureType || "erc1271" }, "*");
+      });
+    }
+  };
+})();
+</script>
+
+<script>
+// ─── App ──────────────────────────────────────────────────────────────────────
+
+// ── Options ──────────────────────────────────────────────────────────────────
+const OPTIONS = {
+  A: { letter: "A", label: "Option A" },
+  B: { letter: "B", label: "Option B" },
+  C: { letter: "C", label: "Option C" },
+  D: { letter: "D", label: "Option D" },
+};
+
+// ── DB (localStorage) ─────────────────────────────────────────────────────────
+const DB_KEY = "ps_voting_votes";
+
+function loadVotes() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function saveVote(address, voteData) {
+  const votes = loadVotes();
+  votes[address.toLowerCase()] = { ...voteData, timestamp: Date.now() };
+  localStorage.setItem(DB_KEY, JSON.stringify(votes));
+}
+
+function hasVoted(address) {
+  const votes = loadVotes();
+  return !!votes[address.toLowerCase()];
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = {
+  wallet: null,        // connected address or null
+  step: 0,             // 0=r1, 1=r2, 2=final, 3=confirm, 4=done, -1=already_voted
+  r1Winner: null,      // winner of A vs B
+  r2Winner: null,      // winner of C vs D
+  champion: null,      // overall winner
+  r1Pick: null,
+  r2Pick: null,
+  finalPick: null,
+  signing: false,
+  error: null,
+};
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+const app = document.getElementById("app");
+
+function render() {
+  const { wallet, step, signing, error } = state;
+
+  // Wallet badge html
+  const walletHtml = `
+    <div class="wallet-badge">
+      <span class="wallet-dot ${wallet ? "connected" : ""}"></span>
+      ${wallet ? truncate(wallet) : "No wallet connected"}
+    </div>`;
+
+  if (step === -1) {
+    app.innerHTML = `
+      ${walletHtml}
+      <div class="already-voted">
+        <div class="big-icon">🗳️</div>
+        <h1>Already Voted</h1>
+        <p class="subtitle" style="margin-top:8px">
+          The address <strong>${truncate(wallet)}</strong> has already cast a vote.<br/>
+          One vote per wallet is allowed.
+        </p>
+        ${renderVoteSummaryFromDB(wallet)}
+      </div>`;
+    return;
+  }
+
+  if (step === 4) {
+    app.innerHTML = `
+      ${walletHtml}
+      <div class="already-voted">
+        <div class="big-icon">✅</div>
+        <h1>Vote Recorded!</h1>
+        <p class="subtitle" style="margin-top:8px">
+          Your favourite <strong>${state.champion}</strong> has been saved on-chain-signed and stored locally.
+        </p>
+        ${renderVoteSummaryFromDB(wallet)}
+      </div>`;
+    return;
+  }
+
+  const steps = [
+    { label: "Round 1 · A vs B" },
+    { label: "Round 2 · C vs D" },
+    { label: "Final · Winner vs Winner" },
+    { label: "Confirm & Sign" },
+  ];
+
+  const progressHtml = `
+    <div class="progress-wrap">
+      ${steps.map((s, i) => `<div class="progress-step ${i < step ? "done" : i === step ? "active" : ""}"></div>`).join("")}
+    </div>`;
+
+  if (step === 3) {
+    // Confirm screen
+    app.innerHTML = `
+      ${walletHtml}
+      <h1>Confirm Your Vote</h1>
+      <p class="subtitle">Review your choices, then sign with your Gnosis passkey.</p>
+      ${progressHtml}
+      <div class="summary">
+        <div class="summary-row">
+          <span class="summary-key">Round 1 (A vs B)</span>
+          <span class="summary-val">${state.r1Winner}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Round 2 (C vs D)</span>
+          <span class="summary-val">${state.r2Winner}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">🏆 Your Favourite</span>
+          <span class="summary-val">${state.champion}</span>
+        </div>
+      </div>
+      <div class="nav">
+        <button class="btn btn-ghost" id="btn-back" ${signing ? "disabled" : ""}>← Back</button>
+        <button class="btn btn-primary" id="btn-submit" ${signing || !wallet ? "disabled" : ""}>
+          ${signing ? '<span class="spinner"></span>Signing…' : '✍️ Sign & Submit'}
+        </button>
+      </div>
+      ${!wallet ? `<div class="status-panel info visible">⚠️ Open this app inside the Circles miniapp host to connect your wallet and sign.</div>` : ""}
+      ${error ? `<div class="status-panel error visible">⚠️ ${error}</div>` : ""}`;
+
+    document.getElementById("btn-back").addEventListener("click", () => { state.error = null; goToStep(2); });
+    document.getElementById("btn-submit").addEventListener("click", submitVote);
+    return;
+  }
+
+  // Wizard steps 0-2
+  const rounds = [
+    { left: OPTIONS.A, right: OPTIONS.B, pick: state.r1Pick, key: "r1Pick", label: "Round 1 of 3 — Choose your favourite" },
+    { left: OPTIONS.C, right: OPTIONS.D, pick: state.r2Pick, key: "r2Pick", label: "Round 2 of 3 — Choose your favourite" },
+    {
+      left:  OPTIONS[state.r1Winner] || { letter: "?", label: "TBD" },
+      right: OPTIONS[state.r2Winner] || { letter: "?", label: "TBD" },
+      pick:  state.finalPick,
+      key:   "finalPick",
+      label: "Final Round — Pick your overall favourite",
+    },
+  ];
+
+  const round = rounds[step];
+  const canNext = !!round.pick;
+
+  app.innerHTML = `
+    ${walletHtml}
+    <h1>Pick Your Favourite</h1>
+    <p class="subtitle">Three quick rounds to find your top pick.</p>
+    ${progressHtml}
+    <div class="round-label">${steps[step].label}</div>
+    <p class="question">${round.label}</p>
+    <div class="options">
+      ${optionBtn(round.left, round.pick === round.left.letter, "left")}
+      ${optionBtn(round.right, round.pick === round.right.letter, "right")}
+    </div>
+    <div class="nav">
+      ${step > 0 ? `<button class="btn btn-ghost" id="btn-back">← Back</button>` : ""}
+      <button class="btn btn-primary" id="btn-next" ${canNext ? "" : "disabled"}>
+        ${step === 2 ? "Review →" : "Next →"}
+      </button>
+    </div>`;
+
+  document.querySelectorAll(".option-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const letter = btn.dataset.letter;
+      state[round.key] = letter;
+      // Recalculate winners
+      if (step === 0) state.r1Winner = letter;
+      if (step === 1) state.r2Winner = letter;
+      if (step === 2) state.champion = letter;
+      render();
+    });
+  });
+
+  if (step > 0) document.getElementById("btn-back").addEventListener("click", () => goToStep(step - 1));
+  document.getElementById("btn-next").addEventListener("click", () => {
+    if (!canNext) return;
+    if (step === 2) goToStep(3);
+    else goToStep(step + 1);
+  });
+}
+
+function optionBtn(opt, selected, side) {
+  return `
+    <button class="option-btn ${selected ? "selected" : ""}" data-letter="${opt.letter}" data-side="${side}">
+      <span class="opt-letter">${opt.letter}</span>
+      <span class="opt-label">${opt.label}</span>
+    </button>`;
+}
+
+function renderVoteSummaryFromDB(wallet) {
+  if (!wallet) return "";
+  const votes = loadVotes();
+  const entry = votes[wallet.toLowerCase()];
+  if (!entry) return "";
+  const d = new Date(entry.timestamp);
+  return `
+    <div class="summary" style="margin-top:20px;text-align:left">
+      <div class="summary-row"><span class="summary-key">Your Favourite</span><span class="summary-val">${entry.champion}</span></div>
+      <div class="summary-row"><span class="summary-key">Round 1 winner</span><span class="summary-val">${entry.r1Winner}</span></div>
+      <div class="summary-row"><span class="summary-key">Round 2 winner</span><span class="summary-val">${entry.r2Winner}</span></div>
+      <div class="summary-row"><span class="summary-key">Voted at</span><span class="summary-val" style="font-size:0.8rem;font-weight:500">${d.toLocaleString()}</span></div>
+    </div>`;
+}
+
+function goToStep(n) {
+  state.step = n;
+  state.error = null;
+  render();
+}
+
+function truncate(addr) {
+  if (!addr) return "";
+  return addr.slice(0, 6) + "…" + addr.slice(-4);
+}
+
+// ── Vote submission ───────────────────────────────────────────────────────────
+async function submitVote() {
+  if (!state.wallet) { state.error = "No wallet connected."; render(); return; }
+  if (hasVoted(state.wallet)) { state.step = -1; render(); return; }
+
+  state.signing = true;
+  state.error = null;
+  render();
+
+  const payload = JSON.stringify({
+    action: "ps_vote",
+    voter: state.wallet,
+    r1Winner: state.r1Winner,
+    r2Winner: state.r2Winner,
+    champion: state.champion,
+    timestamp: Date.now(),
+  });
+
+  try {
+    const result = await window.MiniappSDK.signMessage(payload, "erc1271");
+    // Signature obtained — store the vote
+    saveVote(state.wallet, {
+      r1Winner: state.r1Winner,
+      r2Winner: state.r2Winner,
+      champion: state.champion,
+      signature: result.signature,
+      verified: result.verified,
+    });
+    state.signing = false;
+    state.step = 4;
+    render();
+  } catch (err) {
+    state.signing = false;
+    state.error = err.message || "Signing was rejected or failed.";
+    render();
+  }
+}
+
+// ── Wallet watcher ────────────────────────────────────────────────────────────
+window.MiniappSDK.onWalletChange(function (address) {
+  state.wallet = address;
+  if (address && hasVoted(address) && state.step !== 4) {
+    state.step = -1;
+  }
+  // If we were on the already-voted screen but now a different wallet connects
+  if (address && !hasVoted(address) && state.step === -1) {
+    state.step = 0;
+  }
+  render();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
