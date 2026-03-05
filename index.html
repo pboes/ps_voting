@@ -284,44 +284,108 @@
     .gate-hint a:hover { color: #6a6c8c; }
 
     /* Done screen */
-    .done-screen { text-align: center; padding: 8px 0 4px; }
-    .done-icon   { font-size: 2.8rem; margin-bottom: 16px; }
-    .done-title  {
+    .done-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .done-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .done-title {
       font-size: 18px;
       font-weight: 600;
       letter-spacing: -0.02em;
-      margin-bottom: 6px;
       color: #060a40;
     }
-    .done-sub { color: #9b9db3; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
+    .done-sub { color: #9b9db3; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
 
-    .ranking {
+    /* Your ranking */
+    .your-ranking {
       background: #faf5f1;
       border: 1px solid #ede1d8;
       border-radius: 10px;
       overflow: hidden;
-      text-align: left;
+      margin-bottom: 24px;
     }
-    .ranking-row {
+    .your-ranking-row {
       display: flex;
       align-items: center;
       gap: 12px;
       padding: 11px 14px;
       border-bottom: 1px solid #ede1d8;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       color: #060a40;
     }
-    .ranking-row:last-child { border-bottom: none; }
-    .rank-num {
-      font-size: 11px;
+    .your-ranking-row:last-child { border-bottom: none; }
+    .rank-medal { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+
+    /* Results section */
+    .results-heading {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6a6c8c;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .results-total { font-size: 12px; color: #9b9db3; text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+    .result-row { margin-bottom: 16px; }
+    .result-row:last-child { margin-bottom: 0; }
+    .result-row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .result-label {
+      font-size: 14px;
       font-weight: 600;
-      color: #9b9db3;
-      width: 18px;
-      text-align: center;
+      color: #060a40;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .result-pts {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6a6c8c;
       flex-shrink: 0;
     }
-    .rank-1 .rank-num { color: #060a40; font-size: 13px; }
+    .result-bar-track {
+      background: #ede1d8;
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .result-bar-fill {
+      background: #060a40;
+      height: 6px;
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+    .result-row-bottom {
+      display: flex;
+      justify-content: space-between;
+    }
+    .result-meta { font-size: 11px; color: #9b9db3; }
+
+    .results-explainer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #ede1d8;
+      font-size: 11px;
+      color: #9b9db3;
+      line-height: 1.6;
+    }
+    .results-explainer strong { color: #6a6c8c; font-weight: 600; }
+
+    .results-loading { font-size: 13px; color: #9b9db3; padding: 8px 0; }
 
     /* Back button used inline above pips */
     .back-btn-inline {
@@ -345,7 +409,6 @@
 <body>
 
 <div class="card" id="app"></div>
-<div class="card" id="results-card" style="margin-top:16px;display:none;max-width:420px;margin-left:auto;margin-right:auto;"></div>
 
 <script>
 // ── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ──────
@@ -481,28 +544,18 @@ const state = {
 };
 
 // ── Results ───────────────────────────────────────────────────────────────────
-const resultsCard = document.getElementById("results-card");
+const MEDALS = ["🥇", "🥈", "🥉", "4"];
 
-async function renderResults() {
-  resultsCard.style.display = "block";
-  resultsCard.innerHTML = `
-    <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;margin-bottom:4px;">Live results</div>
-    <div style="font-size:13px;color:#9b9db3;">Loading…</div>`;
-
+async function buildResultsHTML() {
   let rows;
   try {
     rows = await sb.selectAll();
   } catch (e) {
-    resultsCard.innerHTML = `
-      <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;margin-bottom:4px;">Live results</div>
-      <div class="msg msg-error visible">Could not load results: ${e.message}</div>`;
-    return;
+    return `<div class="msg msg-error visible">Could not load results: ${e.message}</div>`;
   }
 
   const total = rows.length;
-
-  // Tally weighted scores and first-place counts
-  const scores    = {};
+  const scores     = {};
   const firstPlace = {};
   OPTIONS.forEach(o => { scores[o.id] = 0; firstPlace[o.id] = 0; });
 
@@ -513,44 +566,36 @@ async function renderResults() {
     if (row.rank1 && firstPlace[row.rank1] !== undefined) firstPlace[row.rank1]++;
   });
 
-  // Sort by score descending
-  const sorted = [...OPTIONS].sort((a, b) => scores[b.id] - scores[a.id]);
+  const sorted  = [...OPTIONS].sort((a, b) => scores[b.id] - scores[a.id]);
   const maxScore = sorted[0] ? scores[sorted[0].id] : 1;
-
   const rankLabels = ["🥇", "🥈", "🥉", "4th"];
 
-  const rows_html = sorted.map((o, i) => {
+  const barsHTML = sorted.map((o, i) => {
     const pct = maxScore > 0 ? Math.round((scores[o.id] / maxScore) * 100) : 0;
     return `
-      <div style="margin-bottom:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-          <span style="font-size:14px;font-weight:600;color:#060a40;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:1rem;">${o.icon}</span>${o.label}
-          </span>
-          <span style="font-size:12px;font-weight:600;color:#6a6c8c;">${scores[o.id]} pts</span>
+      <div class="result-row">
+        <div class="result-row-top">
+          <span class="result-label"><span>${o.icon}</span>${o.label}</span>
+          <span class="result-pts">${scores[o.id]} pts</span>
         </div>
-        <div style="background:#ede1d8;border-radius:999px;height:6px;overflow:hidden;">
-          <div style="background:#060a40;height:6px;border-radius:999px;width:${pct}%;transition:width 0.4s ease;"></div>
+        <div class="result-bar-track">
+          <div class="result-bar-fill" style="width:${pct}%"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:4px;">
-          <span style="font-size:11px;color:#9b9db3;">${rankLabels[i]} place</span>
-          <span style="font-size:11px;color:#9b9db3;">#1 pick by ${firstPlace[o.id]} voter${firstPlace[o.id] !== 1 ? "s" : ""}</span>
+        <div class="result-row-bottom">
+          <span class="result-meta">${rankLabels[i]} place</span>
+          <span class="result-meta">#1 pick · ${firstPlace[o.id]} voter${firstPlace[o.id] !== 1 ? "s" : ""}</span>
         </div>
       </div>`;
   }).join("");
 
-  resultsCard.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6a6c8c;">Live results</div>
-      <div style="font-size:12px;color:#9b9db3;">${total} vote${total !== 1 ? "s" : ""} total</div>
+  return `
+    <div class="results-heading">
+      Live results
+      <span class="results-total">${total} vote${total !== 1 ? "s" : ""}</span>
     </div>
-    ${rows_html}
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #ede1d8;">
-      <div style="font-size:11px;color:#9b9db3;line-height:1.6;">
-        <strong style="color:#6a6c8c;font-weight:600;">How scores work:</strong>
-        each voter ranks all four options. 1st place = 4 pts, 2nd = 3 pts, 3rd = 2 pts, 4th = 1 pt.
-        Scores are summed across all voters.
-      </div>
+    ${barsHTML}
+    <div class="results-explainer">
+      <strong>How scores work:</strong> 1st = 4 pts · 2nd = 3 pts · 3rd = 2 pts · 4th = 1 pt, summed across all voters.
     </div>`;
 }
 
@@ -604,23 +649,29 @@ function render() {
 
   // ── Done ──────────────────────────────────────────────────────────────────
   if (step === 4) {
+    const medals = ["🥇", "🥈", "🥉", "4️⃣"];
     app.innerHTML = `
       ${topbar()}
-      <div class="done-screen">
-        <div class="done-icon">✅</div>
-        <div class="done-title">Vote recorded!</div>
-        <div class="done-sub">Your ranking has been signed and saved.</div>
-        <div class="ranking">
-          ${rank.map((id, i) => {
-            const o = byId(id);
-            return `<div class="ranking-row rank-${i+1}">
-              <span class="rank-num">${i+1}</span>
-              <span>${o ? o.icon + " " + o.label : id}</span>
-            </div>`;
-          }).join("")}
-        </div>
-      </div>`;
-    renderResults();
+      <div class="done-header">
+        <span class="done-icon">✅</span>
+        <span class="done-title">Vote recorded!</span>
+      </div>
+      <div class="done-sub">Your ranking has been signed and saved.</div>
+      <div class="your-ranking">
+        ${rank.map((id, i) => {
+          const o = byId(id);
+          return `<div class="your-ranking-row">
+            <span class="rank-medal">${medals[i]}</span>
+            <span>${o ? o.icon + " " + o.label : id}</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <div id="results-slot"><div class="results-loading">Loading results…</div></div>`;
+
+    buildResultsHTML().then(html => {
+      const slot = document.getElementById("results-slot");
+      if (slot) slot.innerHTML = html;
+    });
     return;
   }
 
@@ -816,11 +867,7 @@ window.MiniappSDK.onWalletChange(function (address) {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 render();
 
-// Show results immediately for anyone visiting (connected or not)
-// — but only once Supabase tokens are real (not placeholder)
-if (SUPABASE_URL !== "__SUPABASE_URL__") {
-  renderResults();
-}
+
 </script>
 </body>
 </html>
