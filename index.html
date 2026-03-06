@@ -32,26 +32,6 @@
       max-width: 420px;
     }
 
-    /* Top bar */
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-size: 13px;
-      border: 1px solid #bbf7ca;
-      background: #f0fdf3;
-      color: #158030;
-    }
-    .conn-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #158030;
-      flex-shrink: 0;
-    }
-
     /* Progress pips */
     .pips {
       display: flex;
@@ -108,11 +88,10 @@
       gap: 12px;
       width: 100%;
       line-height: 1.3;
-      position: relative;
     }
     .opt-icon { font-size: 1.2rem; flex-shrink: 0; }
 
-    .opt:hover:not(:disabled):not(.dimmed) {
+    .opt:hover:not(:disabled) {
       border-color: #9b9db3;
       background: #ffffff;
     }
@@ -121,20 +100,6 @@
     .opt.most {
       border-color: #060a40;
       background: #ffffff;
-    }
-
-    /* Least = warm red tint + dimmed */
-    .opt.least {
-      border-color: #fecaca;
-      background: #fef2f2;
-      opacity: 0.6;
-    }
-
-    /* Dimmed (eliminated) */
-    .opt.dimmed {
-      opacity: 0.3;
-      cursor: default;
-      pointer-events: none;
     }
 
     /* Badge on right */
@@ -147,9 +112,9 @@
       padding: 3px 8px;
       border-radius: 999px;
       flex-shrink: 0;
+      background: #060a40;
+      color: #fff;
     }
-    .badge-most  { background: #060a40; color: #fff; }
-    .badge-least { background: #b91c1c; color: #fff; }
 
     /* Confirm screen */
     .confirm-heading {
@@ -220,7 +185,6 @@
       display: none;
     }
     .msg.visible { display: block; }
-    .msg-info  { background: #fff8eb; border-color: #feebc7; color: #b54708; }
     .msg-error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
 
     /* Spinner */
@@ -236,59 +200,12 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Gate screen (not connected) */
-    .gate-screen { text-align: center; padding: 8px 0 4px; }
-    .gate-icon   { font-size: 2.8rem; margin-bottom: 16px; }
-    .gate-title  {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-      color: #060a40;
-    }
-    .gate-sub {
-      color: #9b9db3;
-      font-size: 13px;
-      line-height: 1.7;
-      margin-bottom: 24px;
-    }
-    .gate-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 13px 16px;
-      background: #060a40;
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      transition: opacity 0.15s;
-      margin-bottom: 12px;
-    }
-    .gate-btn:hover { opacity: 0.85; }
-    .gate-hint {
-      font-size: 12px;
-      color: #9b9db3;
-      line-height: 1.6;
-    }
-    .gate-hint a {
-      color: #060a40;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    .gate-hint a:hover { color: #6a6c8c; }
-
     /* Done screen */
     .done-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 6px;
     }
     .done-icon { font-size: 1.6rem; flex-shrink: 0; }
     .done-title {
@@ -332,7 +249,13 @@
       justify-content: space-between;
       align-items: baseline;
     }
-    .results-total { font-size: 12px; color: #9b9db3; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .results-total {
+      font-size: 12px;
+      color: #9b9db3;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+    }
 
     .result-row { margin-bottom: 16px; }
     .result-row:last-child { margin-bottom: 0; }
@@ -387,7 +310,7 @@
 
     .results-loading { font-size: 13px; color: #9b9db3; padding: 8px 0; }
 
-    /* Back button used inline above pips */
+    /* Back button */
     .back-btn-inline {
       background: none;
       border: none;
@@ -411,80 +334,10 @@
 <div class="card" id="app"></div>
 
 <script>
-// ── Inline miniapp-sdk (adapted from @aboutcircles/miniapp-sdk v0.1.24) ──────
-(function () {
-  var _address = null;
-  var _listeners = [];
-  var _dataListeners = [];
-  var _requestCounter = 0;
-  var _pending = {};
-
-  window.addEventListener("message", function (event) {
-    var d = event.data;
-    if (!d || !d.type) return;
-    switch (d.type) {
-      case "app_data":
-        _dataListeners.forEach(function (fn) { fn(d.data); });
-        break;
-      case "wallet_connected":
-        _address = d.address;
-        _listeners.forEach(function (fn) { fn(_address); });
-        break;
-      case "wallet_disconnected":
-        _address = null;
-        _listeners.forEach(function (fn) { fn(null); });
-        break;
-      case "sign_success":
-        if (_pending[d.requestId]) {
-          _pending[d.requestId].resolve({ signature: d.signature, verified: d.verified });
-          delete _pending[d.requestId];
-        }
-        break;
-      case "sign_rejected":
-        if (_pending[d.requestId]) {
-          _pending[d.requestId].reject(new Error(d.error || d.reason || "Rejected"));
-          delete _pending[d.requestId];
-        }
-        break;
-    }
-  });
-
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: "request_address" }, "*");
-  }
-
-  window.MiniappSDK = {
-    isMiniappMode: function () { return window.parent !== window; },
-    onWalletChange: function (fn) {
-      _listeners.push(fn);
-      fn(_address);
-      return function () {
-        var idx = _listeners.indexOf(fn);
-        if (idx !== -1) _listeners.splice(idx, 1);
-      };
-    },
-    signMessage: function (message, signatureType) {
-      return new Promise(function (resolve, reject) {
-        var requestId = "req_" + (++_requestCounter);
-        _pending[requestId] = { resolve: resolve, reject: reject };
-        window.parent.postMessage({
-          type: "sign_message",
-          requestId: requestId,
-          message: message,
-          signatureType: signatureType || "erc1271"
-        }, "*");
-      });
-    }
-  };
-})();
-</script>
-
-<script>
 // ── Supabase config (tokens injected by CI) ───────────────────────────────────
 const SUPABASE_URL      = "__SUPABASE_URL__";
 const SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
 
-// Minimal Supabase REST helper — no npm needed
 const sb = {
   async insert(row) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/votes`, {
@@ -501,20 +354,6 @@ const sb = {
       const txt = await res.text();
       throw new Error(txt || res.statusText);
     }
-  },
-  async getVote(wallet) {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/votes?select=rank1,rank2,rank3,rank4&wallet=eq.${encodeURIComponent(wallet.toLowerCase())}&limit=1`,
-      {
-        headers: {
-          "apikey":         SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      }
-    );
-    if (!res.ok) throw new Error(res.statusText);
-    const rows = await res.json();
-    return rows.length > 0 ? rows[0] : null;
   },
   async selectAll() {
     const res = await fetch(
@@ -539,28 +378,36 @@ const OPTIONS = [
   { id: "spend", label: "Spend Thanks",      icon: "🙏" },
 ];
 
-// Points awarded per rank position
-const POINTS = [4, 3, 2, 1]; // 1st=4, 2nd=3, 3rd=2, 4th=1
+const POINTS = [4, 3, 2, 1];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-// Flow:
-//   step 0 — show all 4, pick MOST resonant  → stored as rank[0]
-//   step 1 — show all 4, pick LEAST resonant → stored as rank[3]
-//   step 2 — show remaining 2, pick preferred → rank[1]; other is rank[2]
-//   step 3 — confirm
-//   step 4 — done
+// step 0 — pick MOST  (all 4 shown)
+// step 1 — pick LEAST (all 4 shown, most disabled)
+// step 2 — pick preferred of remaining 2
+// step 3 — confirm
+// step 4 — done
 const state = {
-  wallet:   null,
-  step:     0,         // -1=checking, 0-3=wizard, 4=done
-  rank:     [null, null, null, null],
-  signing:  false,
-  error:    null,
-  checking: false,     // true while looking up existing vote on connect
+  step:    0,
+  rank:    [null, null, null, null], // [1st, 2nd, 3rd, 4th]
+  saving:  false,
+  error:   null,
 };
 
-// ── Results ───────────────────────────────────────────────────────────────────
-const MEDALS = ["🥇", "🥈", "🥉", "4"];
+function remaining() {
+  return OPTIONS.filter(o => o.id !== state.rank[0] && o.id !== state.rank[3]);
+}
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const app = document.getElementById("app");
+function byId(id) { return OPTIONS.find(o => o.id === id); }
+
+function pips(active) {
+  return `<div class="pips">${[0,1,2,3].map(i =>
+    `<div class="pip ${i < active ? "done" : i === active ? "active" : ""}"></div>`
+  ).join("")}</div>`;
+}
+
+// ── Results ───────────────────────────────────────────────────────────────────
 async function buildResultsHTML() {
   let rows;
   try {
@@ -569,7 +416,7 @@ async function buildResultsHTML() {
     return `<div class="msg msg-error visible">Could not load results: ${e.message}</div>`;
   }
 
-  const total = rows.length;
+  const total      = rows.length;
   const scores     = {};
   const firstPlace = {};
   OPTIONS.forEach(o => { scores[o.id] = 0; firstPlace[o.id] = 0; });
@@ -581,7 +428,7 @@ async function buildResultsHTML() {
     if (row.rank1 && firstPlace[row.rank1] !== undefined) firstPlace[row.rank1]++;
   });
 
-  const sorted  = [...OPTIONS].sort((a, b) => scores[b.id] - scores[a.id]);
+  const sorted   = [...OPTIONS].sort((a, b) => scores[b.id] - scores[a.id]);
   const maxScore = sorted[0] ? scores[sorted[0].id] : 1;
   const rankLabels = ["🥇", "🥈", "🥉", "4th"];
 
@@ -614,72 +461,19 @@ async function buildResultsHTML() {
     </div>`;
 }
 
-function remaining() {
-  // Options that are neither most (rank[0]) nor least (rank[3])
-  return OPTIONS.filter(o => o.id !== state.rank[0] && o.id !== state.rank[3]);
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const app = document.getElementById("app");
-function byId(id) { return OPTIONS.find(o => o.id === id); }
-
-function topbar() {
-  return `<div class="topbar">
-    <span class="conn-dot connected"></span>
-    <span class="conn-label">Wallet connected</span>
-  </div>`;
-}
-
-function pips(active) {
-  return `<div class="pips">${[0,1,2,3].map(i =>
-    `<div class="pip ${i < active ? "done" : i === active ? "active" : ""}"></div>`
-  ).join("")}</div>`;
-}
-
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
-  const { step, signing, error, wallet, rank } = state;
-
-  // ── Checking for existing vote ────────────────────────────────────────────
-  if (state.checking) {
-    app.innerHTML = `
-      ${topbar()}
-      <div style="font-size:13px;color:#9b9db3;padding:8px 0;">Checking your vote status…</div>`;
-    return;
-  }
-
-  // ── Gate: not connected ───────────────────────────────────────────────────
-  if (!wallet) {
-    app.innerHTML = `
-      <div class="gate-screen">
-        <div class="gate-icon">🔐</div>
-        <div class="gate-title">Connect your wallet to vote</div>
-        <div class="gate-sub">
-          This app runs inside the Gnosis app.<br/>
-          Log in with your existing account or create one to get started.
-        </div>
-        <a class="gate-btn" href="https://app.gnosis.io" target="_blank" rel="noopener">
-          Open Gnosis app ↗
-        </a>
-        <div class="gate-hint">
-          Don't have an account yet?
-          <a href="https://app.gnosis.io" target="_blank" rel="noopener">Create one for free</a>
-          — it only takes a minute.
-        </div>
-      </div>`;
-    return;
-  }
+  const { step, saving, error, rank } = state;
 
   // ── Done ──────────────────────────────────────────────────────────────────
   if (step === 4) {
     const medals = ["🥇", "🥈", "🥉", "4️⃣"];
     app.innerHTML = `
-      ${topbar()}
       <div class="done-header">
         <span class="done-icon">✅</span>
         <span class="done-title">Vote recorded!</span>
       </div>
-      <div class="done-sub">Your ranking has been signed and saved.</div>
+      <div class="done-sub">Thanks for sharing your view.</div>
       <div class="your-ranking">
         ${rank.map((id, i) => {
           const o = byId(id);
@@ -700,15 +494,14 @@ function render() {
 
   // ── Confirm ────────────────────────────────────────────────────────────────
   if (step === 3) {
+    const labels = ["🥇 Most resonant", "2nd", "3rd", "🔻 Least resonant"];
     app.innerHTML = `
-      ${topbar()}
       ${pips(3)}
       <div class="confirm-heading">Confirm your ranking</div>
-      <div class="confirm-sub">Sign with your Gnosis passkey to submit.</div>
+      <div class="confirm-sub">Happy with this? Hit submit to save your vote.</div>
       <div class="summary">
         ${rank.map((id, i) => {
           const o = byId(id);
-          const labels = ["🥇 Most resonant", "2nd", "3rd", "🔻 Least resonant"];
           return `<div class="summary-row">
             <span class="summary-key">${labels[i]}</span>
             <span class="summary-val">${o ? o.icon + " " + o.label : id}</span>
@@ -716,29 +509,27 @@ function render() {
         }).join("")}
       </div>
       <div class="btn-row">
-        <button class="btn btn-ghost" id="btn-back" ${signing ? "disabled" : ""}>← Back</button>
-        <button class="btn btn-primary" id="btn-submit" ${signing || !wallet ? "disabled" : ""}>
-          ${signing ? '<span class="spinner"></span>Signing…' : '✍️ Sign &amp; Submit'}
+        <button class="btn btn-ghost" id="btn-back" ${saving ? "disabled" : ""}>← Back</button>
+        <button class="btn btn-primary" id="btn-submit" ${saving ? "disabled" : ""}>
+          ${saving ? '<span class="spinner"></span>Saving…' : 'Submit'}
         </button>
       </div>
       <div class="msg msg-error ${error ? "visible" : ""}">${error || ""}</div>`;
 
     document.getElementById("btn-back").addEventListener("click", () => {
-      // Go back to step 2 (middle pick), reset rank[1] and rank[2]
       state.rank[1] = null;
       state.rank[2] = null;
-      state.error = null;
-      state.step = 2;
+      state.error   = null;
+      state.step    = 2;
       render();
     });
     document.getElementById("btn-submit").addEventListener("click", submitVote);
     return;
   }
 
-  // ── Round 0: pick MOST ─────────────────────────────────────────────────────
+  // ── Round 0: pick MOST ────────────────────────────────────────────────────
   if (step === 0) {
     app.innerHTML = `
-      ${topbar()}
       ${pips(0)}
       <div class="round-heading">Round 1 of 3</div>
       <div class="question">Which resonates with you the most?</div>
@@ -753,17 +544,16 @@ function render() {
     app.querySelectorAll(".opt").forEach(btn => {
       btn.addEventListener("click", () => {
         state.rank[0] = btn.dataset.id;
-        state.step = 1;
+        state.step    = 1;
         render();
       });
     });
     return;
   }
 
-  // ── Round 1: pick LEAST ────────────────────────────────────────────────────
+  // ── Round 1: pick LEAST ───────────────────────────────────────────────────
   if (step === 1) {
     app.innerHTML = `
-      ${topbar()}
       ${pips(1)}
       <div class="round-heading">Round 2 of 3</div>
       <div class="question">Which resonates with you the least?</div>
@@ -773,37 +563,31 @@ function render() {
           return `<button class="opt ${isMost ? "most" : ""}" data-id="${o.id}" ${isMost ? "disabled" : ""}>
             <span class="opt-icon">${o.icon}</span>
             ${o.label}
-            ${isMost ? '<span class="opt-badge badge-most">Most</span>' : ""}
+            ${isMost ? '<span class="opt-badge">Most</span>' : ""}
           </button>`;
         }).join("")}
       </div>`;
 
-    // back arrow — top-left pill
-    const backBtn = document.createElement("button");
-    backBtn.className = "back-btn-inline";
-    backBtn.textContent = "← Back";
-    backBtn.addEventListener("click", () => {
-      state.rank[0] = null;
-      state.step = 0;
-      render();
-    });
-    app.insertBefore(backBtn, app.querySelector(".pips"));
+    const back1 = document.createElement("button");
+    back1.className = "back-btn-inline";
+    back1.textContent = "← Back";
+    back1.addEventListener("click", () => { state.rank[0] = null; state.step = 0; render(); });
+    app.insertBefore(back1, app.querySelector(".pips"));
 
     app.querySelectorAll(".opt:not([disabled])").forEach(btn => {
       btn.addEventListener("click", () => {
         state.rank[3] = btn.dataset.id;
-        state.step = 2;
+        state.step    = 2;
         render();
       });
     });
     return;
   }
 
-  // ── Round 2: pick preferred of remaining 2 ─────────────────────────────────
+  // ── Round 2: pick preferred of remaining 2 ────────────────────────────────
   if (step === 2) {
     const rest = remaining();
     app.innerHTML = `
-      ${topbar()}
       ${pips(2)}
       <div class="round-heading">Round 3 of 3</div>
       <div class="question">And which resonates more?</div>
@@ -815,23 +599,19 @@ function render() {
           </button>`).join("")}
       </div>`;
 
-    const backBtn2 = document.createElement("button");
-    backBtn2.className = "back-btn-inline";
-    backBtn2.textContent = "← Back";
-    backBtn2.addEventListener("click", () => {
-      state.rank[3] = null;
-      state.step = 1;
-      render();
-    });
-    app.insertBefore(backBtn2, app.querySelector(".pips"));
+    const back2 = document.createElement("button");
+    back2.className = "back-btn-inline";
+    back2.textContent = "← Back";
+    back2.addEventListener("click", () => { state.rank[3] = null; state.step = 1; render(); });
+    app.insertBefore(back2, app.querySelector(".pips"));
 
     app.querySelectorAll(".opt").forEach(btn => {
       btn.addEventListener("click", () => {
-        const picked = btn.dataset.id;
-        const other  = rest.find(o => o.id !== picked);
+        const picked  = btn.dataset.id;
+        const other   = rest.find(o => o.id !== picked);
         state.rank[1] = picked;
         state.rank[2] = other ? other.id : null;
-        state.step = 3;
+        state.step    = 3;
         render();
       });
     });
@@ -841,73 +621,30 @@ function render() {
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 async function submitVote() {
-  if (!state.wallet) { state.error = "No wallet connected."; render(); return; }
-
-  state.signing = true;
-  state.error   = null;
+  state.saving = true;
+  state.error  = null;
   render();
 
-  const payload = JSON.stringify({
-    action:    "ps_vote",
-    voter:     state.wallet,
-    rank1st:   state.rank[0],
-    rank2nd:   state.rank[1],
-    rank3rd:   state.rank[2],
-    rank4th:   state.rank[3],
-    timestamp: Date.now(),
-  });
-
   try {
-    const result = await window.MiniappSDK.signMessage(payload, "erc1271");
-
-    // Write to Supabase
     await sb.insert({
-      wallet:    state.wallet.toLowerCase(),
-      rank1:     state.rank[0],
-      rank2:     state.rank[1],
-      rank3:     state.rank[2],
-      rank4:     state.rank[3],
-      signature: result.signature,
-      verified:  result.verified,
+      wallet: "anon",
+      rank1:  state.rank[0],
+      rank2:  state.rank[1],
+      rank3:  state.rank[2],
+      rank4:  state.rank[3],
     });
-
-    state.signing = false;
-    state.step    = 4;
+    state.saving = false;
+    state.step   = 4;
     render();
   } catch (err) {
-    state.signing = false;
-    state.error   = err.message || "Signing or submission failed.";
+    state.saving = false;
+    state.error  = err.message || "Could not save your vote. Please try again.";
     render();
   }
 }
 
-// ── Wallet watcher ────────────────────────────────────────────────────────────
-window.MiniappSDK.onWalletChange(async function (address) {
-  state.wallet = address;
-  if (!address) { render(); return; }
-
-  // Check if this wallet already voted
-  state.checking = true;
-  render();
-
-  try {
-    const existing = await sb.getVote(address);
-    if (existing) {
-      state.rank = [existing.rank1, existing.rank2, existing.rank3, existing.rank4];
-      state.step = 4;
-    }
-  } catch (e) {
-    // If the lookup fails, let them vote — worst case Supabase rejects the duplicate
-  }
-
-  state.checking = false;
-  render();
-});
-
 // ── Boot ──────────────────────────────────────────────────────────────────────
 render();
-
-
 </script>
 </body>
 </html>
